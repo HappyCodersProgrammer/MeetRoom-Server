@@ -4,50 +4,20 @@ const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
 const { Server } = require("socket.io");
 const twilio = require("twilio");
-require('dotenv').config();
+const { disconnect } = require("process");
 
 const PORT = process.env.PORT || 5000;
 const app = express();
-
-app.use(cors());
-
-// //======Conncet with socket server property====
-// const {Server} = require('socket.io');
-// //====== Create socket object ====
-// const io = new Server(server,{
-//         cors: {
-//           origin: "*",
-//           methods: ["GET", "POST"],
-//         }
-// });
-
-// // const io = require("socket.io")(server, {
-// //     cors: {
-// //       origin: "*",
-// //       methods: ["GET", "POST"],
-// //     },
-// // });
-
-
-
-// //====== Connect socket to client ====
-// io.on('connection',(socket)=>{
-//     console.log('New user connected');
-
-//   setTimeout(()=>{
-//    socket.send("Learning server to client")
-// }, 10000)
-
-//  socket.on('disconnect', function(){
-//     console.log('New user disconnected');
-//  })
-//  })
-
 const server = http.createServer(app);
+app.use(cors());
+require('dotenv').config();
 
+// =============================
+//          Socket IO         //
+//==============================
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -55,25 +25,47 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
+   // ======Create New Room=====
+  socket.on("new-room", (data) => {
+    newRoomHandler(data, socket);
+  });
+
+  // ======Join Room=====
   socket.on("join_room", (data) => {
     socket.join(data);
     console.log(`User with ID: ${socket.id} joined room: ${data}`);
   });
 
+  // ======Send Message=====
   socket.on("send_message", (data) => {
     socket.to(data.room).emit("receive_message", data);
   });
 
+  // ======Disconnect=====
   socket.on("disconnect", () => {
     console.log("User Disconnected", socket.id);
   });
+
+   // ======Connection Signal=====
+   socket.on("connect-signal", (data) => {
+    signalingHandler(data, socket);
+  });
+
+   // ======Connection Initialize=====
+   socket.on("connect-init", (data) => {
+    initializeConnectionHandler(data, socket);
+  });
+
 });
 
 
-// connceted with client server
+// =============================
+//          MongoDB           //
+//==============================
+
+// Connceted with client server
 app.get('/', (req, res) => {
   res.send("MeetRoom server is running")
-  // res.sendFile( --dirname + "/index.html")
 })
 
 server.listen(PORT, () => {

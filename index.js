@@ -1,10 +1,13 @@
 const express = require("express");
+require('dotenv').config();
 const http = require("http");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
+
 const { Server } = require("socket.io");
 const twilio = require("twilio");
 const { disconnect } = require("process");
+
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const PORT = process.env.PORT || 5000;
@@ -12,7 +15,6 @@ const app = express();
 const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
-require('dotenv').config();
 
 
 // =============================
@@ -72,24 +74,37 @@ io.on("connection", (socket) => {
 
 
 
-const uri = `mongodb+srv://MeetRoom:sBSrQ544m8rYkRmd@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
- 
-async function run(){
-  try{
-    await client.connect();
-        const SlotCollection = client.db('MeetRoom').collection('meeting-slots');
 
-        app.get('/meeting-slots', async(req, res) =>{
-          const query = {};
-          const cursor = SlotCollection.find(query);
-          const slots = await cursor.toArray();
-          res.send(slots);
-      })
-  }
-  finally{}
-}
-run().catch(console.dir);
+const uri = "mongodb+srv://meetroom:meetroom12345@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority";
+console.log(uri);
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+client.connect(err => {
+  const collection = client.db("test").collection("devices");
+  // perform actions on the collection object
+  client.close();
+});
+
+
+
+
+// const uri = `mongodb+srv://MeetRoom:sBSrQ544m8rYkRmd@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority`;
+// const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+ 
+// async function run(){
+//   try{
+//     await client.connect();
+//         const SlotCollection = client.db('MeetRoom').collection('meeting-slots');
+
+//         app.get('/meeting-slots', async(req, res) =>{
+//           const query = {};
+//           const cursor = SlotCollection.find(query);
+//           const slots = await cursor.toArray();
+//           res.send(slots);
+//       })
+//   }
+//   finally{}
+// }
+// run().catch(console.dir);
 
 // const uri = "mongodb+srv://MeetRoom:sBSrQ544m8rYkRmd@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority";
 // const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });

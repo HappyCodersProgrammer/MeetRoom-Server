@@ -76,20 +76,45 @@ io.on("connection", (socket) => {
 
 
 const uri = "mongodb+srv://meetroom:meetroom12345@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority";
-console.log(uri);
+
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-client.connect(err => {
-  const collection = client.db("test").collection("devices");
-  // perform actions on the collection object
-  client.close();
-});
+
+async function run() {
+  try {
+    await client.connect();
+    const scheduleCollection = client.db('MeetRoom').collection('meeting-slots');
+
+    app.post('/schedule', async (req, res) => {
+      const newProduct = req.body;
+      const result = await scheduleCollection.insertOne(newProduct);
+      res.send(result);
+    });
+
+
+
+    app.get('/schedule', async (req, res) => {
+      const query = {};
+      const cursor = scheduleCollection.find(query);
+      const products = await cursor.toArray();
+      res.send(products)
+    });
+
+
+
+  }
+  finally {
+
+  }
+}
+
+run().catch(console.dir)
 
 
 
 
 // const uri = `mongodb+srv://MeetRoom:sBSrQ544m8rYkRmd@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority`;
 // const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
- 
+
 // async function run(){
 //   try{
 //     await client.connect();

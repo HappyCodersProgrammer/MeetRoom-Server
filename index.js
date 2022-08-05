@@ -226,8 +226,6 @@ async function run () {
       res.send(result);
     });
 
-
-
     app.get('/schedule', async (req, res) => {
       const query = {};
       const cursor = scheduleCollection.find(query);

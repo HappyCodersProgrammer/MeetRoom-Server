@@ -54,11 +54,11 @@ io.on("connection", (socket) => {
 
   // ======Create New Room=====
   socket.on("new-room", (data) => {
-    newRoomHandler(data, socket);
+    createNewRoomHandler(data, socket);
   });
 
   // ======Join Room=====
-  socket.on("join_room", (data) => {
+  socket.on("join-room", (data) => {
     socket.join(data);
     console.log(`User with ID: ${socket.id} joined room: ${data}`);
   });

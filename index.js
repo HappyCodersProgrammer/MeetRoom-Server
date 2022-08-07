@@ -49,6 +49,24 @@ app.get("/api/room-exists/:roomId", (req, res) => {
   }
 });
 
+// ========twillio trun credentials=======
+app.get("/api/get-turn-credentials", (req, res) => {
+  const accountSid = "ACb49c6e600c96a80f1bf4e6026edea781";
+  const authToken = "36800e5611bdafd38bff0f4915539b7d";
+
+  const client = twilio(accountSid, authToken);
+
+  try {
+    client.tokens.create().then((token) => {
+      res.send({ token });
+    });
+  } catch (err) {
+    console.log("error occurred when fetching turn server credentials");
+    console.log(err);
+    res.send({ token: null });
+  }
+});
+
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
@@ -59,18 +77,13 @@ io.on("connection", (socket) => {
 
   // ======Join Room=====
   socket.on("join-room", (data) => {
+    joinRoomHandler(data, socket);
     socket.join(data);
-    console.log(`User with ID: ${socket.id} joined room: ${data}`);
-  });
-
-  // ======Send Message=====
-  socket.on("send_message", (data) => {
-    socket.to(data.room).emit("receive_message", data);
   });
 
   // ======Disconnect=====
   socket.on("disconnect", () => {
-    console.log("User Disconnected", socket.id);
+    disconnectHandler(socket);
   });
 
   // ======Connection Signal=====
@@ -83,14 +96,18 @@ io.on("connection", (socket) => {
     initializeConnectionHandler(data, socket);
   });
 
+  // ======Send Message=====
+    socket.on("send_message", (data) => {
+    socket.to(data.room).emit("receive_message", data);
+  });
+
 });
 
 //===========socket.io handlers===========
-
 const createNewRoomHandler = (data, socket) => {
   console.log("host is creating new room");
   console.log(data);
-  const { identity, onlyAudio } = data;
+  const { identity} = data;
 
   const roomId = uuidv4();
 
@@ -100,7 +117,6 @@ const createNewRoomHandler = (data, socket) => {
     id: uuidv4(),
     socketId: socket.id,
     roomId,
-    onlyAudio,
   };
 
   // push that user to connectedUsers
@@ -125,14 +141,13 @@ const createNewRoomHandler = (data, socket) => {
 };
 
 const joinRoomHandler = (data, socket) => {
-  const { identity, roomId, onlyAudio } = data;
+  const { identity, roomId } = data;
 
   const newUser = {
     identity,
     id: uuidv4(),
     socketId: socket.id,
     roomId,
-    onlyAudio,
   };
 
   // join room as user which just is trying to join room passing room id
@@ -152,7 +167,7 @@ const joinRoomHandler = (data, socket) => {
         connUserSocketId: socket.id,
       };
 
-      io.to(user.socketId).emit("conn-prepare", data);
+      io.to(user.socketId).emit("connect-prepare", data);
     }
   });
 
@@ -193,7 +208,7 @@ const signalingHandler = (data, socket) => {
   const { connUserSocketId, signal } = data;
 
   const signalingData = { signal, connUserSocketId: socket.id };
-  io.to(connUserSocketId).emit("connect-signal", signalingData);
+  io.to(connUserSocketId).emit("conn-signal", signalingData);
 };
 
 // information from clients which are already in room that They have preapred for incoming connection
@@ -201,9 +216,8 @@ const initializeConnectionHandler = (data, socket) => {
   const { connUserSocketId } = data;
 
   const initData = { connUserSocketId: socket.id };
-  io.to(connUserSocketId).emit("connect-init", initData);
+  io.to(connUserSocketId).emit("conn-init", initData);
 };
-
 
 
 // =============================

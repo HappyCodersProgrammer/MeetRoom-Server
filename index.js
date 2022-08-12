@@ -27,7 +27,7 @@ const io = new Server(server, {
   },
 });
 
-// =======Inisitialize=======
+// =======Inisitialize========
 let connectedUsers = [];
 let rooms = [];
 
@@ -318,4 +318,4 @@ app.get('/', (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`MeetRoom server is running on ${PORT}`);
-});  
+});

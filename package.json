@@ -1,7 +1,6 @@
 {
-  "name": "meetroom-server",
+  "name": "c",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -19,5 +18,14 @@
     "socket.io": "^4.5.1",
     "twilio": "^3.79.0",
     "uuid": "^8.3.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shafaeth1/MeetRoom-Server-1.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shafaeth1/MeetRoom-Server-1/issues"
+  },
+  "homepage": "https://github.com/shafaeth1/MeetRoom-Server-1#readme",
+  "description": ""
 }

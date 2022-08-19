@@ -235,6 +235,7 @@ async function run() {
     const scheduleCollection = client.db('MeetRoom').collection('meeting-slots');
     const userCollection = client.db('MeetRoom').collection('users');
     const memberCollection = client.db('MeetRoom').collection('members');
+    const reviewCollection = client.db('MeetRoom').collection('reviews');
     // schedule Section
     app.post('/schedule', async (req, res) => {
       const newProduct = req.body;
@@ -252,6 +253,24 @@ async function run() {
       const result = await memberCollection.insertOne(members);
       res.send(result);
     });
+
+    // review start
+    app.get('/review', async (req, res) => {
+
+
+      const query = {}
+      const purchases = await reviewCollection.find(query).toArray();
+      return res.send(purchases);
+
+
+
+    })
+    app.post('/review', async (req, res) => {
+      const purchase = req.body
+
+      const result = await reviewCollection.insertOne(purchase);
+      return res.send(result);
+    })
     // ====Get Categories======
     app.get('/member', async (req, res) => {
       const query = {};

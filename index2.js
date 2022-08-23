@@ -1,37 +1,22 @@
 const express = require("express");
-require('dotenv').config();
 const http = require("http");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
-
-const { Server } = require("socket.io");
 const twilio = require("twilio");
 const { disconnect } = require("process");
-
-const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const PORT = process.env.PORT || 5000;
 const app = express();
 const server = http.createServer(app);
+
 app.use(cors());
-app.use(express.json());
 
+// const { MongoClient, ServerApiVersion } = require('mongodb');
 
-// =============================
-//          Socket IO         //
-//==============================
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-});
-
-// =======Inisitialize=======
 let connectedUsers = [];
 let rooms = [];
 
-// ========create route to check if room exists=======
+// create route to check if room exists
 app.get("/api/room-exists/:roomId", (req, res) => {
   const { roomId } = req.params;
   const room = rooms.find((room) => room.id === roomId);
@@ -49,7 +34,6 @@ app.get("/api/room-exists/:roomId", (req, res) => {
   }
 });
 
-// ========twillio trun credentials=======
 app.get("/api/get-turn-credentials", (req, res) => {
   const accountSid = "ACb49c6e600c96a80f1bf4e6026edea781";
   const authToken = "36800e5611bdafd38bff0f4915539b7d";
@@ -67,46 +51,43 @@ app.get("/api/get-turn-credentials", (req, res) => {
   }
 });
 
-io.on("connection", (socket) => {
-  console.log(`User Connected: ${socket.id}`);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 
-  // ======Create New Room=====
-  socket.on("new-room", (data) => {
+io.on("connection", (socket) => {
+ 
+  console.log(`user connected ${socket.id}`);
+
+  socket.on("create-new-room", (data) => {
     createNewRoomHandler(data, socket);
   });
 
-  // ======Join Room=====
   socket.on("join-room", (data) => {
     joinRoomHandler(data, socket);
-    socket.join(data);
   });
 
-  // ======Disconnect=====
   socket.on("disconnect", () => {
     disconnectHandler(socket);
   });
 
-  // ======Connection Signal=====
-  socket.on("connect-signal", (data) => {
+  socket.on("conn-signal", (data) => {
     signalingHandler(data, socket);
   });
 
-  // ======Connection Initialize=====
-  socket.on("connect-init", (data) => {
+  socket.on("conn-init", (data) => {
     initializeConnectionHandler(data, socket);
   });
-
-  // ======Send Message=====
-  socket.on("send_message", (data) => {
-    socket.to(data.room).emit("receive_message", data);
-  });
-
 });
 
-//===========socket.io handlers===========
+// socket.io handlers
+
 const createNewRoomHandler = (data, socket) => {
-  console.log("host is creating new room");
-  console.log(data);
+  console.log("host is creating new room", socket);
+
   const { identity } = data;
 
   const roomId = uuidv4();
@@ -117,8 +98,9 @@ const createNewRoomHandler = (data, socket) => {
     id: uuidv4(),
     socketId: socket.id,
     roomId,
+    onlyAudio,
   };
-
+  onsole.log(newUser);
   // push that user to connectedUsers
   connectedUsers = [...connectedUsers, newUser];
 
@@ -148,6 +130,7 @@ const joinRoomHandler = (data, socket) => {
     id: uuidv4(),
     socketId: socket.id,
     roomId,
+    onlyAudio,
   };
 
   // join room as user which just is trying to join room passing room id
@@ -167,7 +150,7 @@ const joinRoomHandler = (data, socket) => {
         connUserSocketId: socket.id,
       };
 
-      io.to(user.socketId).emit("connect-prepare", data);
+      io.to(user.socketId).emit("conn-prepare", data);
     }
   });
 
@@ -219,115 +202,114 @@ const initializeConnectionHandler = (data, socket) => {
   io.to(connUserSocketId).emit("conn-init", initData);
 };
 
+// // =============================
+// //          MongoDB           //
+// //==============================
 
-// =============================
-//          MongoDB           //
-//==============================
+// const uri = "mongodb+srv://meetroom:meetroom12345@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority";
+// const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
-const uri = "mongodb+srv://meetroom:meetroom12345@cluster0.cgs9b.mongodb.net/?retryWrites=true&w=majority";
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+// // ======Main Function ========
+// async function run() {
+//   try {
+//     client.connect();
+//     console.log('Connected Successfuly');
+//     const scheduleCollection = client.db('MeetRoom').collection('meeting-slots');
+//     const userCollection = client.db('MeetRoom').collection('users');
+//     const memberCollection = client.db('MeetRoom').collection('members');
+//     const reviewCollection = client.db('MeetRoom').collection('reviews');
+//     // schedule Section
+//     app.post('/schedule', async (req, res) => {
+//       const newProduct = req.body;
+//       const result = await scheduleCollection.insertOne(newProduct);
+//       res.send(result);
+//     });
+//     app.get('/schedule', async (req, res) => {
+//       const query = {};
+//       const cursor = scheduleCollection.find(query);
+//       const products = await cursor.toArray();
+//       res.send(products)
+//     });
+//     app.post('/member', async (req, res) => {
+//       const members = req.body;
+//       const result = await memberCollection.insertOne(members);
+//       res.send(result);
+//     });
 
-// ======Main Function ========
-async function run() {
-  try {
-    client.connect();
-    console.log('Connected Successfuly');
-    const scheduleCollection = client.db('MeetRoom').collection('meeting-slots');
-    const userCollection = client.db('MeetRoom').collection('users');
-    const memberCollection = client.db('MeetRoom').collection('members');
-    const reviewCollection = client.db('MeetRoom').collection('reviews');
-    // schedule Section
-    app.post('/schedule', async (req, res) => {
-      const newProduct = req.body;
-      const result = await scheduleCollection.insertOne(newProduct);
-      res.send(result);
-    });
-    app.get('/schedule', async (req, res) => {
-      const query = {};
-      const cursor = scheduleCollection.find(query);
-      const products = await cursor.toArray();
-      res.send(products)
-    });
-    app.post('/member', async (req, res) => {
-      const members = req.body;
-      const result = await memberCollection.insertOne(members);
-      res.send(result);
-    });
-
-    // review start
-    app.get('/review', async (req, res) => {
-
-
-      const query = {}
-      const purchases = await reviewCollection.find(query).toArray();
-      return res.send(purchases);
+//     // review start
+//     app.get('/review', async (req, res) => {
 
 
-
-    })
-    app.post('/review', async (req, res) => {
-      const purchase = req.body
-
-      const result = await reviewCollection.insertOne(purchase);
-      return res.send(result);
-    })
-    // ====Get Categories======
-    app.get('/member', async (req, res) => {
-      const query = {};
-      const cursor = memberCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-    app.delete('/member/:email', async (req, res) => {
-      const email = req.params.email;
-      const filter = { email: email }
-      const result = await memberCollection.deleteOne(filter);
-      res.send(result);
-    })
-    // users Section
-    app.get('/user', async (req, res) => {
-      const users = await userCollection.find().toArray();
-      res.send(users);
-    })
-    app.get('/admin/:email', async (req, res) => {
-      const email = req.params.email;
-      const user = await userCollection.findOne({ email: email });
-      const isAdmin = user.role === 'admin';
-      res.send({ admin: isAdmin });
-    })
-    app.put('/user/admin/:email', async (req, res) => {
-      const email = req.params.email;
-      const filter = { email: email }
-      const updateDoc = {
-        $set: { role: 'admin' },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    })
-
-    app.put('/user/:email', async (req, res) => {
-      const email = req.params.email;
-      const user = req.body;
-      const filter = { email: email }
-      const options = { upsert: true }
-      const updateDoc = {
-        $set: user,
-      };
-      const result = await userCollection.updateOne(filter, updateDoc, options);
-      res.send(result);
-    })
-    app.delete('/user/:email', async (req, res) => {
-      const email = req.params.email;
-      const filter = { email: email }
-      const result = await userCollection.deleteOne(filter);
-      res.send(result);
-    })
+//       const query = {}
+//       const purchases = await reviewCollection.find(query).toArray();
+//       return res.send(purchases);
 
 
-  }
-  finally { }
-}
-run().catch(console.dir);
+
+//     })
+//     app.post('/review', async (req, res) => {
+//       const purchase = req.body
+
+//       const result = await reviewCollection.insertOne(purchase);
+//       return res.send(result);
+//     })
+//     // ====Get Categories======
+//     app.get('/member', async (req, res) => {
+//       const query = {};
+//       const cursor = memberCollection.find(query);
+//       const result = await cursor.toArray();
+//       res.send(result);
+//     });
+//     app.delete('/member/:email', async (req, res) => {
+//       const email = req.params.email;
+//       const filter = { email: email }
+//       const result = await memberCollection.deleteOne(filter);
+//       res.send(result);
+//     })
+//     // users Section
+//     app.get('/user', async (req, res) => {
+//       const users = await userCollection.find().toArray();
+//       res.send(users);
+//     })
+//     app.get('/admin/:email', async (req, res) => {
+//       const email = req.params.email;
+//       const user = await userCollection.findOne({ email: email });
+//       const isAdmin = user.role === 'admin';
+//       res.send({ admin: isAdmin });
+//     })
+//     app.put('/user/admin/:email', async (req, res) => {
+//       const email = req.params.email;
+//       const filter = { email: email }
+//       const updateDoc = {
+//         $set: { role: 'admin' },
+//       };
+//       const result = await userCollection.updateOne(filter, updateDoc);
+//       res.send(result);
+//     })
+
+//     app.put('/user/:email', async (req, res) => {
+//       const email = req.params.email;
+//       const user = req.body;
+//       const filter = { email: email }
+//       const options = { upsert: true }
+//       const updateDoc = {
+//         $set: user,
+//       };
+//       const result = await userCollection.updateOne(filter, updateDoc, options);
+//       res.send(result);
+//     })
+//     app.delete('/user/:email', async (req, res) => {
+//       const email = req.params.email;
+//       const filter = { email: email }
+//       const result = await userCollection.deleteOne(filter);
+//       res.send(result);
+//     })
+
+
+//   }
+//   finally { }
+// }
+// run().catch(console.dir);
 
 
 // Connceted with client server
@@ -337,4 +319,4 @@ app.get('/', (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`MeetRoom server is running on ${PORT}`);
-});  
+}); 
